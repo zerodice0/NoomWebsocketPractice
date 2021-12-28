@@ -1,0 +1,9 @@
+{
+  "compileOptions": {
+    "target": "ES5",
+    "module": "CommonJS",
+		"outDir": "./dist"
+  }, 
+	"include": ["src/**/*.ts", "src/public/js/app.js"], 
+  "exclude": ["node_module"]
+}
