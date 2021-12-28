@@ -22,9 +22,11 @@
   },
   "dependencies": {
     "@babel/preset-env": "^7.16.5",
+    "@types/socket.io": "^3.0.2",
     "@types/ws": "^8.2.2",
     "express": "^4.17.2",
     "pug": "^3.0.2",
+    "socket.io": "^4.4.0",
     "ws": "^8.4.0"
   }
 }
