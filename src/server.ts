@@ -1,4 +1,4 @@
-import { Socket } from "dgram";
+import * as SocketIO from "socket.io";
 import * as express from "express";
 import * as core from 'express-serve-static-core';
 import * as http from "http";
@@ -13,59 +13,26 @@ app.use("/public", express.static(__dirname + "/public"));
 app.get("/", (req, res) => res.render("home"));
 app.get("/*", (req, res) => res.render("home")); 
 
-const server:http.Server = http.createServer(app);
-const wss:WebSocketServer = new WebSocketServer({ server });
+const httpServer:http.Server = http.createServer(app);
+const webSocketServer:SocketIO.Server = new SocketIO.Server(httpServer);
 
-const sockets:NamedSocket[] = [];
-
-const sendMessageToSocket = (socket:NamedSocket, message:string) => {
-  socket.webSocket.send(message);
-}
-
-wss.on("connection", (socket:WebSocket) => {
-  const namedSocket: NamedSocket = {
-    webSocket: socket,
-    nickname: "Unknown"
-  }
-  sockets.push(namedSocket);
-  console.log("Connected to Client ✅");
-
-  sockets.forEach((socket:NamedSocket) => {
-    sendMessageToSocket(
-      socket,
-      `Hello, ${namedSocket.nickname} is connected!`
-    );
+webSocketServer.on("connection", socket => {
+  socket.onAny((event:string) => {
+    console.log("Socket Event: ", event);
   });
-  
-  socket.on("message", (message:Buffer) => {
-    const _message:Message = JSON.parse((message.toString("utf8")));
 
-    switch(_message.type) {
-      case "message":
-        sockets
-          .filter((_socket:NamedSocket) => _socket.webSocket !== socket)
-          .forEach(
-            (_socket:NamedSocket) => {
-              sendMessageToSocket(_socket, `${namedSocket.nickname}: ${_message.payload}`);
-            }
-          );
-      break;
-      case "nickname":
-
-        if (namedSocket.nickname !== null) {
-          sockets.forEach(
-            (_socket:NamedSocket) => {
-              sendMessageToSocket(_socket, `${namedSocket.nickname} -> ${_message.payload}`)
-            });
-        }
-        namedSocket.nickname = _message.payload;
-      break;
+  socket.on(
+    "enter_room",
+    (message: {payload:string}, done:Function) => {
+      const roomName:string = message.payload;
+      console.log(socket.rooms);
+      socket.join(roomName);
+      done("Message from Backend");
+      socket.to(roomName).emit("welcome");
     }
-  });
+  );
+})
 
-  socket.on("close", () => {
-    console.log("Disconnected from Client ❌");
-  })
-});
+const handleListen = ():void => console.log(`Listening on port http://localhost:3000`);
+httpServer.listen(3000, handleListen);
 
-server.listen(3000, () => console.log(`Listening on port 3000`));

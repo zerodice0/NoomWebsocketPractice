@@ -1,40 +1,40 @@
-const messageList = document.querySelector("ul");
-const nicknameForm = document.querySelector("#nick");
-const messageForm = document.querySelector("#message");
-const socket = new WebSocket(`ws://${window.location.host}`);
+const socket = io();
 
-socket.addEventListener("open", () => {
-  console.log("Connected to Server ✅");
-})
+const welcome = document.getElementById('welcome');
+const form = welcome.querySelector("form");
+const room = document.getElementById("room");
 
-socket.addEventListener("message", (message) => {
-  const li = document.createElement("li");
-  li.innerText = message.data;
-  messageList.append(li);
-  console.log("New message: ", message.data);
-})
+room.hidden = true;
 
-socket.addEventListener(("close"), () => {
-  console.log("Disconnected from Server ❌");
-})
+let roomName;
 
-nicknameForm.addEventListener("submit", (event) => {
+const showRoom = () => {
+  welcome.hidden = true;
+  room.hidden = false;
+  const h3 = room.querySelector("h3");
+  h3.innerHTML = `Current Room: ${roomName}`;
+}
+
+const handleRoomSubmit = (event) => {
   event.preventDefault();
-  const nickname = nicknameForm.querySelector("input").value;
-  socket.send(JSON.stringify({
-    type: "nickname",
-    payload: nickname
-  }));
-})
+  const input = form.querySelector("input");
+  socket.emit(
+    "enter_room",
+    { payload: input.value },
+    showRoom
+  );
 
-messageForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const message = messageForm.querySelector("input").value;
+  roomName = input.value;
+  input.value = "";
+}
+
+const sendMessage = (message) => {
+  const ul = room.querySelector("ul");
   const li = document.createElement("li");
-  li.innerText = `You: ${message}`;
-  messageList.append(li);
-  socket.send(JSON.stringify({
-    type: "message",
-    payload: message
-  }));
-});
+  li.innerHTML = message;
+  ul.appendChild(li);
+}
+
+socket.on("welcome", () => sendMessage("Someone joined to room!"));
+
+form.addEventListener("submit", handleRoomSubmit);
