@@ -1,7 +1,6 @@
 import {WebSocket} from "ws";
 
 export interface Message {
-  type: string;
   payload: string;
 }
 
