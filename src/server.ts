@@ -32,6 +32,27 @@ webSocketServer.on("connection", socket => {
       socket.to(roomName).emit("welcome");
     }
   );
+
+  socket.on(
+    "message",
+    (message: Message, roomName:string, done:Function | null) => {
+      socket.to(roomName).emit("message", message);
+      if (done != null) {
+        done("Message from Backend");
+      }
+    }
+  );
+
+  socket.on(
+    "disconnecting",
+    (reason:string) => {
+      socket.rooms.forEach(
+        room => {
+          socket.to(room).emit("bye", reason);
+        }
+      );
+    }
+  );
 })
 
 const handleListen = ():void => console.log(`Listening on port http://localhost:3000`);
