@@ -3,6 +3,7 @@ import * as http from "http";
 import * as express from "express";
 import { Express } from 'express-serve-static-core';
 import { EnterRoomMessage, Message, NamedSocket } from "./models/message";
+import { instrument } from "@socket.io/admin-ui";
 
 const app:Express = express();
 
@@ -14,18 +15,50 @@ app.get("/", (req, res) => res.render("home"));
 app.get("/*", (req, res) => res.render("home")); 
 
 const httpServer:http.Server = http.createServer(app);
-const webSocketServer:SocketIO.Server = new SocketIO.Server(httpServer);
-// let sockets:NamedSocket[] = [];
+const webSocketServer:SocketIO.Server = new SocketIO.Server(httpServer, {
+  cors: {
+    origin: ["https://admin.socket.io"],
+    credentials: true
+  }
+});
+
+instrument(webSocketServer, {
+  auth: false
+});
+
+const publicRoomKeys = () => {
+  const {
+    sockets: {
+      adapter: {sids, rooms}
+    }
+  } = webSocketServer;
+
+  const publicRoomKeys:string[] = [];
+  
+  rooms.forEach((_:Set<string>, key:string) => {
+    if (sids.get(key) === undefined) {
+      publicRoomKeys.push(key);
+    }
+  })
+
+  return publicRoomKeys;
+}
+
+const countRoomMembers = (roomName:string):number => {
+  return webSocketServer.sockets.adapter.rooms.get(roomName).size;
+}
 
 webSocketServer.on("connection", (socket:SocketIO.Socket) => {
   const model:NamedSocket = {
     webSocket: socket,
     nickname: null,
   }
+  webSocketServer.sockets.emit("room_list_change", publicRoomKeys());
   // sockets.push(model);
 
   socket.onAny((event:string) => {
     console.log("Socket Event: ", event);
+    // console.log(webSocketServer.sockets.adapter);
   });
 
   socket.on(
@@ -38,9 +71,10 @@ webSocketServer.on("connection", (socket:SocketIO.Socket) => {
 
       socket.join(roomName);
       if (done != null) {
-        done("Message from Backend", roomName, nickName);
+        done("Message from Backend", roomName, nickName, countRoomMembers(roomName));
       }
-      socket.to(roomName).emit("welcome", model.nickname);
+      socket.to(roomName).emit("welcome", model.nickname, countRoomMembers(roomName));
+      webSocketServer.sockets.emit("room_list_change", publicRoomKeys());
     }
   );
 
@@ -80,13 +114,20 @@ webSocketServer.on("connection", (socket:SocketIO.Socket) => {
     (reason:string) => {
       socket.rooms.forEach(
         room => {
-          socket.to(room).emit("bye", reason, model.nickname);
+          socket.to(room).emit("bye", reason, model.nickname, countRoomMembers(room)-1);
         }
       );
 
       // sockets = [...sockets.filter((namedSocket:NamedSocket) => socket != namedSocket.webSocket)];
     }
   );
+
+  socket.on(
+    "disconnect",
+    (_: string) => {
+      webSocketServer.sockets.emit("room_list_change", publicRoomKeys());
+    }
+  )
 })
 
 const handleListen = ():void => console.log(`Listening on port http://localhost:3000`);
