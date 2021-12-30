@@ -2,7 +2,7 @@ import * as SocketIO from "socket.io";
 import * as http from "http";
 import * as express from "express";
 import { Express } from 'express-serve-static-core';
-import { Message, NamedSocket } from "./models/message";
+import { EnterRoomMessage, Message, NamedSocket } from "./models/message";
 
 const app:Express = express();
 
@@ -30,11 +30,15 @@ webSocketServer.on("connection", (socket:SocketIO.Socket) => {
 
   socket.on(
     "enter_room",
-    (message: Message, done:Function | null) => {
-      const roomName:string = message.payload;
+    (message: EnterRoomMessage, done:Function | null) => {
+      const roomName:string = message.payload.roomName;
+      const nickName:string = message.payload.nickName;
+
+      model.nickname = nickName;
+
       socket.join(roomName);
       if (done != null) {
-        done("Message from Backend");
+        done("Message from Backend", roomName, nickName);
       }
       socket.to(roomName).emit("welcome", model.nickname);
     }
