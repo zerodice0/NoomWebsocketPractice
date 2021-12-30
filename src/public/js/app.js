@@ -9,13 +9,13 @@ room.hidden = true;
 let roomName;
 let nickName;
 
-const showRoom = () => {
+const showRoom = (_message, _roomName, _nickName, _countRoomMember) => {
   welcome.hidden = true;
   room.hidden = false;
   const h3 = room.querySelector("h3");
   const messageForm = room.querySelector("#message");
   const nicknameForm = room.querySelector("#nickname");
-  h3.innerHTML = `Current Room: ${roomName} / Your Nickname: ${nickName}`;
+  h3.innerHTML = `Current Room: ${roomName} (${_countRoomMember}) / Your Nickname: ${nickName}`;
   messageForm.addEventListener("submit", handleMessageSubmit);
   nicknameForm.addEventListener("submit", handleNickanmeSubmit);
 }
@@ -75,10 +75,21 @@ const sendMessage = (message) => {
   ul.appendChild(li);
 }
 
-socket.on("welcome", (nickname) => sendMessage(`${nickname ?? "Someone"} joined to room!`));
-socket.on("bye", (reason, nickname) => sendMessage(
-  `${nickname ?? "Someone"} left the room!${ reason ? ` Reason: ${reason}` : ""}` 
-));
+socket.on("welcome", (nickname, countRoomMember) => {
+  const h3 = room.querySelector("h3");
+  h3.innerHTML = `Current Room: ${roomName}(${countRoomMember}) / Your Nickname: ${nickName}`;
+  
+  sendMessage(`${nickname ?? "Someone"} joined to room!`)
+});
+
+socket.on("bye", (reason, nickname) => {
+  const h3 = room.querySelector("h3");
+  h3.innerHTML = `Current Room: ${roomName}(${countRoomMember}) / Your Nickname: ${nickName}`;
+
+  sendMessage(
+    `${nickname ?? "Someone"} left the room!${ reason ? ` Reason: ${reason}` : ""}`
+  );
+});
 socket.on(
   "message",
   (message, nickname) => 
@@ -88,6 +99,19 @@ socket.on(
   "nicknameChanged",
   (oldNickname, newNickname) =>
     sendMessage(`${oldNickname ?? "unknown"} is now known as ${newNickname}`)
+);
+socket.on(
+  "room_list_change",
+  (roomList) => {
+    const elemRoomList = welcome.querySelector("ul");
+    elemRoomList.innerHTML = "";
+    
+    roomList.forEach(room => {
+      const li = document.createElement("li");
+      li.innerText = room;
+      elemRoomList.append(li);
+    });
+  }
 );
 
 form.addEventListener("submit", handleRoomSubmit);
