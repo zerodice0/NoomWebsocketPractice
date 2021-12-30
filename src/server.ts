@@ -2,7 +2,7 @@ import * as SocketIO from "socket.io";
 import * as http from "http";
 import * as express from "express";
 import { Express } from 'express-serve-static-core';
-import { Message } from "./models/message";
+import { Message, NamedSocket } from "./models/message";
 
 const app:Express = express();
 
@@ -15,8 +15,15 @@ app.get("/*", (req, res) => res.render("home"));
 
 const httpServer:http.Server = http.createServer(app);
 const webSocketServer:SocketIO.Server = new SocketIO.Server(httpServer);
+// let sockets:NamedSocket[] = [];
 
-webSocketServer.on("connection", socket => {
+webSocketServer.on("connection", (socket:SocketIO.Socket) => {
+  const model:NamedSocket = {
+    webSocket: socket,
+    nickname: null,
+  }
+  // sockets.push(model);
+
   socket.onAny((event:string) => {
     console.log("Socket Event: ", event);
   });
@@ -29,14 +36,14 @@ webSocketServer.on("connection", socket => {
       if (done != null) {
         done("Message from Backend");
       }
-      socket.to(roomName).emit("welcome");
+      socket.to(roomName).emit("welcome", model.nickname);
     }
   );
 
   socket.on(
     "message",
     (message: Message, roomName:string, done:Function | null) => {
-      socket.to(roomName).emit("message", message);
+      socket.to(roomName).emit("message", message, model.nickname);
       if (done != null) {
         done("Message from Backend");
       }
@@ -44,13 +51,36 @@ webSocketServer.on("connection", socket => {
   );
 
   socket.on(
+    "nickname",
+    (nickname: string, done: Function | null) => {
+      if (done != null) {
+        done(model.nickname, nickname);
+      }
+
+      const originalNickname = model.nickname;
+      const newNickname = nickname;
+      socket.rooms.forEach(
+        room => {
+          socket
+            .to(room)
+            .emit("nicknameChanged", originalNickname, newNickname);
+        }
+      );
+
+      model.nickname = nickname;
+    }
+  )
+
+  socket.on(
     "disconnecting",
     (reason:string) => {
       socket.rooms.forEach(
         room => {
-          socket.to(room).emit("bye", reason);
+          socket.to(room).emit("bye", reason, model.nickname);
         }
       );
+
+      // sockets = [...sockets.filter((namedSocket:NamedSocket) => socket != namedSocket.webSocket)];
     }
   );
 })
