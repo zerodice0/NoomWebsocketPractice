@@ -10,22 +10,35 @@ html(lang="en")
     header 
       h1 Noom
     main 
+      
       div#welcome
-        
-        form
-          input#nickName(placeholder="nickname", required, type="text")
-          input#roomName(placeholder="room name", required, type="text")
-          button Enter Room 
-        h4 Open Rooms 
-        ul
-      div#room
-        h3
-        ul
-        form#nickname
-          input(placeholder="nickname", required, type="text")
-          button Change Nickname
-        form#message
-          input(placeholder="message", required, type="text")
-          button Send Message
+        form 
+          input(placeholder="room name", required, type="text")
+          button Enter room
+      div#call
+        div#stream
+          video(autoplay, playsinline, width="400", height="400")
+          button#audioPlay Mute
+          button#videoPlay Turn Camera Off
+          select#cameraSelect
+        div#peerStream
+          video(autoplay, playsinline, width="400", height="400")
+      //- h1 Noom - Chatting
+      //- div#welcome  
+      //-   form
+      //-     input#nickName(placeholder="nickname", required, type="text")
+      //-     input#roomName(placeholder="room name", required, type="text")
+      //-     button Enter Room 
+      //-   h4 Open Rooms 
+      //-   ul
+      //- div#room
+      //-   h3
+      //-   ul
+      //-   form#nickname
+      //-     input(placeholder="nickname", required, type="text")
+      //-     button Change Nickname
+      //-   form#message
+      //-     input(placeholder="message", required, type="text")
+      //-     button Send Message
     script(src="/socket.io/socket.io.js")
     script(src="/public/js/app.js")
