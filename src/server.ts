@@ -53,81 +53,102 @@ webSocketServer.on("connection", (socket:SocketIO.Socket) => {
     webSocket: socket,
     nickname: null,
   }
-  webSocketServer.sockets.emit("room_list_change", publicRoomKeys());
-  // sockets.push(model);
 
-  socket.onAny((event:string) => {
-    console.log("Socket Event: ", event);
-    // console.log(webSocketServer.sockets.adapter);
+  socket.on("join_room", (roomName:string) => {
+    socket.join(roomName);
+    socket.to(roomName).emit(
+      "welcome",
+      model.nickname,
+      countRoomMembers(roomName)
+    );
+  })
+
+  socket.on("offer", (offer, roomName) => {
+    socket.to(roomName).emit("offer", offer);
+  })
+
+  socket.on("answer", (answer, roomName) => {
+    socket.to(roomName).emit("answer", answer);
+  })
+
+  socket.on("iceCandidate", (candidate, roomName) => {
+    socket.to(roomName).emit("iceCandidate", candidate);
   });
 
-  socket.on(
-    "enter_room",
-    (message: EnterRoomMessage, done:Function | null) => {
-      const roomName:string = message.payload.roomName;
-      const nickName:string = message.payload.nickName;
+  // webSocketServer.sockets.emit("room_list_change", publicRoomKeys());
 
-      model.nickname = nickName;
+  // socket.onAny((event:string) => {
+  //   console.log("Socket Event: ", event);
+  //   // console.log(webSocketServer.sockets.adapter);
+  // });
 
-      socket.join(roomName);
-      if (done != null) {
-        done("Message from Backend", roomName, nickName, countRoomMembers(roomName));
-      }
-      socket.to(roomName).emit("welcome", model.nickname, countRoomMembers(roomName));
-      webSocketServer.sockets.emit("room_list_change", publicRoomKeys());
-    }
-  );
+  // socket.on(
+  //   "enter_room",
+  //   (message: EnterRoomMessage, done:Function | null) => {
+  //     const roomName:string = message.payload.roomName;
+  //     const nickName:string = message.payload.nickName;
 
-  socket.on(
-    "message",
-    (message: Message, roomName:string, done:Function | null) => {
-      socket.to(roomName).emit("message", message, model.nickname);
-      if (done != null) {
-        done("Message from Backend");
-      }
-    }
-  );
+  //     model.nickname = nickName;
 
-  socket.on(
-    "nickname",
-    (nickname: string, done: Function | null) => {
-      if (done != null) {
-        done(model.nickname, nickname);
-      }
+  //     socket.join(roomName);
+  //     if (done != null) {
+  //       done("Message from Backend", roomName, nickName, countRoomMembers(roomName));
+  //     }
+  //     socket.to(roomName).emit("welcome", model.nickname, countRoomMembers(roomName));
+  //     webSocketServer.sockets.emit("room_list_change", publicRoomKeys());
+  //   }
+  // );
 
-      const originalNickname = model.nickname;
-      const newNickname = nickname;
-      socket.rooms.forEach(
-        room => {
-          socket
-            .to(room)
-            .emit("nicknameChanged", originalNickname, newNickname);
-        }
-      );
+  // socket.on(
+  //   "message",
+  //   (message: Message, roomName:string, done:Function | null) => {
+  //     socket.to(roomName).emit("message", message, model.nickname);
+  //     if (done != null) {
+  //       done("Message from Backend");
+  //     }
+  //   }
+  // );
 
-      model.nickname = nickname;
-    }
-  )
+  // socket.on(
+  //   "nickname",
+  //   (nickname: string, done: Function | null) => {
+  //     if (done != null) {
+  //       done(model.nickname, nickname);
+  //     }
 
-  socket.on(
-    "disconnecting",
-    (reason:string) => {
-      socket.rooms.forEach(
-        room => {
-          socket.to(room).emit("bye", reason, model.nickname, countRoomMembers(room)-1);
-        }
-      );
+  //     const originalNickname = model.nickname;
+  //     const newNickname = nickname;
+  //     socket.rooms.forEach(
+  //       room => {
+  //         socket
+  //           .to(room)
+  //           .emit("nicknameChanged", originalNickname, newNickname);
+  //       }
+  //     );
 
-      // sockets = [...sockets.filter((namedSocket:NamedSocket) => socket != namedSocket.webSocket)];
-    }
-  );
+  //     model.nickname = nickname;
+  //   }
+  // )
 
-  socket.on(
-    "disconnect",
-    (_: string) => {
-      webSocketServer.sockets.emit("room_list_change", publicRoomKeys());
-    }
-  )
+  // socket.on(
+  //   "disconnecting",
+  //   (reason:string) => {
+  //     socket.rooms.forEach(
+  //       room => {
+  //         socket.to(room).emit("bye", reason, model.nickname, countRoomMembers(room)-1);
+  //       }
+  //     );
+
+  //     // sockets = [...sockets.filter((namedSocket:NamedSocket) => socket != namedSocket.webSocket)];
+  //   }
+  // );
+
+  // socket.on(
+  //   "disconnect",
+  //   (_: string) => {
+  //     webSocketServer.sockets.emit("room_list_change", publicRoomKeys());
+  //   }
+  // )
 })
 
 const handleListen = ():void => console.log(`Listening on port http://localhost:3000`);
