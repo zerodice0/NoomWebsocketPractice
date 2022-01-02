@@ -20,6 +20,7 @@ let roomName;
 let nickName;
 let videoStream;
 let peerConnection;
+let dataChannel;
 
 let isPlayAudio = true;
 let isPlayVideo = true;
@@ -168,6 +169,10 @@ const handleIceCandidate = (event) => {
 
 //socket callback
 socket.on("welcome", async () => {
+  dataChannel = peerConnection.createDataChannel("chat");
+  dataChannel.addEventListener("message", event => {
+    console.log(event.data);
+  });
   const offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
   socket.emit("offer", offer, roomName);
@@ -175,6 +180,12 @@ socket.on("welcome", async () => {
 });
 
 socket.on("offer", async offer => {
+  peerConnection.addEventListener("datachannel", event => {
+    dataChannel = event.channel;
+    dataChannel.addEventListener("message", event => {
+      console.log(event.data);
+    });
+  });
   console.log("got offer");
   await peerConnection.setRemoteDescription(offer);
   const answer = await peerConnection.createAnswer();
@@ -195,6 +206,11 @@ socket.on("iceCandidate", iceCandidate => {
   }
 })
 
+socket.on("bye", nickName => {
+  // peerConnection.getTracks().forEach(track => track.stop());
+  peerConnection.close();
+  peerVideoPlayer.srcObject = null;
+})
 // const showRoom = (_message, _roomName, _nickName, _countRoomMember) => {
 //   welcome.hidden = true;
 //   room.hidden = false;

@@ -75,6 +75,12 @@ webSocketServer.on("connection", (socket:SocketIO.Socket) => {
     socket.to(roomName).emit("iceCandidate", candidate);
   });
 
+  socket.on("disconnecting", (reason: string) => {
+    socket.rooms.forEach(room => {
+      socket.to(room).emit("bye", model.nickname);
+    });
+  })
+
   // webSocketServer.sockets.emit("room_list_change", publicRoomKeys());
 
   // socket.onAny((event:string) => {
